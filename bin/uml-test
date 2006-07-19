@@ -1,0 +1,225 @@
+#!/bin/bash
+#
+# Set up a simulated domain using UML
+#
+
+source /home/dang/bin/functions.sh
+
+LINUX="linux"
+TESTDIR="."
+MEM="64M"
+ROOTFS="root_fs"
+SWAPFS="swap_fs"
+
+if [ -z "$1" ]; then
+	echo "Error: no conf file"
+	die "`basename $0` <conf file>"
+fi
+
+CONFFILE=$1
+TESTNAME=`basename ${CONFFILE} .conf`
+if [ -z $TESTNAME ]; then
+	die "Error: conf file name \"${CONFFILE}\" invalid.  Must be in the form /path/to/file.conf"
+fi
+
+TESTDIR=`dirname ${CONFFILE}`;
+if [ -z "${TESTDIR}" ]; then
+	die "Error: conf file name \"${CONFFILE}\" invalid.  Must be in the form /path/to/file.conf"
+fi
+
+if [ -a ${TESTDIR}/${LINUX} ]; then
+	echo "Running ${TESTDIR}/${LINUX}"
+else
+	die "No ${TESTDIR}/${LINUX}"
+fi
+
+if [ -a ${TESTDIR}/${ROOTFS} ]; then
+	echo "root_fs: ${TESTDIR}/${ROOTFS}"
+else
+	die "No ${TESTDIR}/${ROOTFS}"
+fi
+
+if [ -a ${TESTDIR}/${SWAPFS} ]; then
+	echo "root_fs: ${TESTDIR}/${SWAPFS}"
+else
+	die "No ${TESTDIR}/${SWAPFS}"
+fi
+
+source ${CONFFILE}
+
+RUNDIR=${TESTDIR}/run
+
+if [ "${PERSISTENT_ROOTFS:=no}" != "yes" ]; then
+	echo "Running non-persistent"
+	rm -rf ${RUNDIR}
+else
+	echo "Running persistent"
+fi
+
+mkdir -p ${RUNDIR}
+
+# Configure host network access
+if [ -n "${HOST_NETWORK}" ]; then
+	if [ -z "${HOST_IP4}" ]; then
+		die "No HOST_IP4 address"
+	fi
+	if [ -z "${HOST_IP4_MASKLEN}" ]; then
+		die "No HOST_IP4_MASKLEN address"
+	fi
+	if [ -z "${HOST_IP4_BCAST}" ]; then
+		die "No HOST_IP4_BCAST address"
+	fi
+
+	TAPNAME="uml-tap${HOST_NETWORK}"
+
+	tunctl -u ${USER} -t ${TAPNAME}
+	sudo ip link set ${TAPNAME} up
+	sudo ip addr add ${HOST_IP4}/${HOST_IP4_MASKLEN} broadcast ${HOST_IP4_BCAST} dev ${TAPNAME}
+	if [ -n "${HOST_IP6}" ]; then
+		sudo ip addr add ${HOST_IP6} dev ${TAPNAME}
+	fi
+fi
+
+# Start switch daemons for networks
+for NET in ${NETWORKS}; do
+	#uml_switch -unix ${RUNDIR}/network${NET} -daemon > /dev/null 
+	if [ "z${HOST_NETWORK}" == "z${NET}" ]; then
+		uml_switch -unix ${RUNDIR}/network${NET} -tap ${TAPNAME} &
+	else
+		uml_switch -unix ${RUNDIR}/network${NET} &
+	fi
+done
+
+# Create config for each box
+for MACHINE in ${MACHINES}; do
+	echo "Configuring ${MACHINE}"
+
+	if [ ! -d ${TESTDIR}/${MACHINE} ]; then
+		die "No config directory for ${MACHINE}"
+	fi
+	CONFDIR="${TESTDIR}/${MACHINE}/conf.d"
+	if [ ! -d ${CONFDIR} ]; then
+		die "No conf.d directory for ${MACHINE}"
+	fi
+
+	# Create local.start
+	echo "local.start"
+	echo -e "# /etc/conf.d/local.start" > ${CONFDIR}/local.start
+	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/local.start
+	echo -e "echo 'core.%e-%p' > /proc/sys/kernel/core_pattern" >> ${CONFDIR}/local.start
+	echo -e "env-update" >> ${CONFDIR}/local.start
+	LOOP=LOOP_IP4_${MACHINE}
+	if [ -n "${!LOOP}" ]; then
+		echo -e "ip addr add ${!LOOP} dev lo" >> ${CONFDIR}/local.start
+	fi
+	LOOP=LOOP_IP6_${MACHINE}
+	if [ -n "${!LOOP}" ]; then
+		echo -e "ip addr add ${!LOOP} dev lo" >> ${CONFDIR}/local.start
+	fi
+
+	# Create hostname
+	echo "hostname"
+	echo -e "# /etc/conf.d/hostname" > ${CONFDIR}/hostname
+	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/hostname
+	echo -e "HOSTNAME='${MACHINE}'" >> ${CONFDIR}/hostname
+
+	# Create hosts
+	echo "hosts"
+	echo -e "# /etc/conf.d/hosts" > ${CONFDIR}/hosts
+	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/hosts
+	echo -e "127.0.0.1\tlocalhost" >> ${CONFDIR}/hosts
+	for HOST in ${MACHINES}; do
+		HOST_IP=DNS_IP_${HOST}
+		if [ -z "${!HOST_IP}" ]; then
+			die "No ${HOST_IP}"
+		fi
+		echo -e "${!HOST_IP}\t${HOST}.nexthop.com ${HOST}" >> ${CONFDIR}/hosts
+	done
+	if [ -n "${HOST_IP4}" ]; then
+		# Add name of host
+		echo -e "${HOST_IP4}\t$(hostname).$(dnsdomainname) $(hostname)" >> ${CONFDIR}/hosts
+	fi
+
+	# Create net
+	echo "net"
+	echo -e "# /etc/conf.d/net" > ${CONFDIR}/net
+	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/net
+	echo -e "modules=( 'iproute2' )" >> ${CONFDIR}/net
+	NETS=NETWORKS_${MACHINE}
+	if [ -z "${!NETS}" ]; then
+		die "No ${NETS}"
+	fi
+	for NET in ${!NETS}; do
+		NETDEV=NETDEV_${MACHINE}_${NET}
+		NETIP4=NETIP4_${MACHINE}_${NET}
+		NETIP6=NETIP6_${MACHINE}_${NET}
+		if [ -z "${!NETDEV}" ]; then
+			die "No ${NETDEV}"
+		fi
+		echo -e "config_${!NETDEV}=(" >> ${CONFDIR}/net
+		if [ -z "${!NETIP4}" ]; then
+			die "No ${NETIP4}"
+		fi
+		echo -e "\t\"${!NETIP4}\"" >> ${CONFDIR}/net
+		if [ -z "${!NETIP6}" ]; then
+			die "No ${NETIP6}"
+		fi
+		echo -e "\t\"${!NETIP6}\"" >> ${CONFDIR}/net
+		echo -e ")" >> ${CONFDIR}/net
+	done
+
+done
+
+if [ -n "${XTERM}" ]; then
+	XTERMLINE="xterm=${XTERM}"
+fi
+
+# Start up each UML box
+for MACHINE in ${MACHINES}; do
+	ETHLINE=""
+
+	TMAC=MAC_${MACHINE}
+	if [ -z "${!TMAC}" ]; then
+		die "No MAC byte configured for ${MACHINE}"
+	fi
+
+	NETS=NETWORKS_${MACHINE}
+	if [ -z "${!NETS}" ]; then
+		die "No ${NETS}"
+	fi
+
+	# Build network list for each network
+	for NET in ${!NETS}; do
+		NETMACBYTE=$(printf "%02d" ${NET})
+		NETDEV=NETDEV_${MACHINE}_${NET}
+		ETHLINE="${ETHLINE} ${!NETDEV}=daemon,FE:FD:67:45:${NETMACBYTE}:${!TMAC},unix,${RUNDIR}/network${NET}"
+	done
+
+	if [ -z "${ETHLINE}" ]; then
+		die "No ethernets configured for ${MACHINE}"
+	fi
+
+	# Mount /stuff, /share, and /home
+	#echo sudo mount -o bind /stuff ${TESTDIR}/${MACHINE}/stuff
+	#echo sudo mount -o bind /share ${TESTDIR}/${MACHINE}/share
+	#echo sudo mount -o bind /home ${TESTDIR}/${MACHINE}/home
+
+	echo "Starting ${MACHINE}"
+	screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
+		ubd0=${RUNDIR}/${ROOTFS}.${MACHINE}.cow,${TESTDIR}/${ROOTFS} \
+ 		ubd1=${RUNDIR}/${SWAPFS}.${MACHINE}.cow,${TESTDIR}/${SWAPFS} \
+		mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE}/conf.d \
+		${XTERMLINE} &
+done
+sleep 1
+SCREENPIDS=$(screen -ls | grep uml | awk -F . '{print $1}')
+if [ -n "${SCREENPIDS}" ]; then
+	wait ${SCREENPIDS}
+fi
+
+# Stop our switches
+killall uml_switch
+# Clean up tap
+if [ -n "${TAPNAME}" ]; then
+	tunctl -d ${TAPNAME}
+fi

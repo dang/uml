@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# Start/stop the mounts for building UML images
+#
+
+source ${HOME}/bin/functions.sh
+
+CURDIR="$(pwd)"
+BUILDDIR="${CURDIR}/build"
+MNTDIR="${CURDIR}/mnt"
+IMG="${CURDIR}/root_fs"
+
+if [ ! -d ${BUILDDIR} ]; then
+	die "No ${BUILDDIR}"
+fi
+if [ ! -d ${MNTDIR} ]; then
+	die "No ${MNTDIR}"
+fi
+if [ ! -f ${IMG} ]; then
+	die "No ${IMG}"
+fi
+
+# Stop umlbuild if it was started
+cd ${BUILDDIR}
+umlbuild-stop > /dev/null
+cd ${CURDIR}
+
+# Mount image
+sudo mount -o loop ${IMG} ${MNTDIR} || die "Couldn't mount ${IMG}"
+sudo rsync -av --delete --progress ${BUILDDIR}/ ${MNTDIR} || die "rsync failed"
+sudo umount ${MNTDIR} || die "Couldn't unmount ${MNTDIR}"

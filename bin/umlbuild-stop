@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Start/stop the mounts for building UML images
+#
+
+source ${HOME}/bin/functions.sh
+
+if [ -z "$1" ]; then
+	BUILDDIR="`pwd`"
+else
+	BUILDDIR="$1"
+fi
+
+# unmount our shit
+sudo umount ${BUILDDIR}/proc ${BUILDDIR}/usr/portage ${BUILDDIR}/home/portage ${BUILDDIR}/usr/src || die "umounts failed"

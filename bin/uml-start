@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# Start a UML instance
+#
+
+source ${HOME}/bin/functions.sh
+
+ROOTPATH="."
+LINUX="kernel/linux/linux"
+MEM="64M"
+ROOTFS="root_fs"
+SWAPFS="swap_fs"
+
+if [ -z "$1" ]; then
+	echo "Error: no umlname"
+	usage " <umlname> <MAC Byte> [ <path-to-rundir> ] [ <mem> ]"
+fi
+
+#if [ -z "$2" ]; then
+#	echo "Error: no command"
+#	usage " <umlname> <MAC Byte> [ <path-to-rundir> ] [ <mem> ]"
+#fi
+
+UMID=$1
+#MACBYTE=$2
+
+if [ -n "$3" ]; then
+	ROOTPATH=$3
+fi
+
+if [ -n "$4" ]; then
+	MEM=$4
+fi
+
+if [ -n "$FSCK" ]; then
+	e2fsck -y -f ${ROOTFS}
+fi
+
+${ROOTPATH}/${LINUX} umid=${UMID} ubd0=${ROOTFS}.${UMID}.cow,${ROOTFS}	\
+ ubd1=${SWAPFS}.${UMID}.cow,${SWAPFS} mem=${MEM}
+#echo ${ROOTPATH}/${LINUX} umid=${UMID} ubd0=${ROOTFS}.${UMID}.cow,${ROOTFS}	\
+# ubd1=${SWAPFS}.${UMID}.cow,${SWAPFS} mem=${MEM}						\
+# eth0=daemon,FE:FD:67:45:00:${MACBYTE},unix,${ROOTPATH}/run/network0	\
+# eth1=daemon,FE:FD:67:45:01:${MACBYTE},unix,${ROOTPATH}/run/network1	\
+# eth2=daemon,FE:FD:67:45:02:${MACBYTE},unix,${ROOTPATH}/run/network2
