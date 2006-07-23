@@ -20,9 +20,9 @@ if [ ! -f ${IMG} ]; then
 	die "No ${IMG}"
 fi
 
-# Stop umlbuild if it was started
+# Stop uml-build if it was started
 cd ${BUILDDIR}
-umlbuild-stop > /dev/null
+uml-build-stop > /dev/null
 cd ${CURDIR}
 
 # Mount image

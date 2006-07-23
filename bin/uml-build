@@ -12,7 +12,7 @@ else
 fi
 
 # Stop if it was started
-umlbuild-stop
+uml-build-stop
 
 # Mount /proc, /usr/portage, /home/portage
 sudo mount -o bind /proc ${BUILDDIR}/proc || die "Mount of /proc failed"
