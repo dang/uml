@@ -3,7 +3,7 @@
 # Start/stop the mounts for building UML images
 #
 
-source @PREFIX@/functions.sh
+source @PREFIX@/uml-functions.sh
 
 if [ -z "$1" ]; then
 	BUILDDIR="`pwd`"

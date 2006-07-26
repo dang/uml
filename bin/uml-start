@@ -3,7 +3,7 @@
 # Start a UML instance
 #
 
-source @PREFIX@/functions.sh
+source @PREFIX@/uml-functions.sh
 
 ROOTPATH="."
 LINUX="kernel/linux/linux"

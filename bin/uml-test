@@ -3,7 +3,7 @@
 # Set up a simulated domain using UML
 #
 
-source @PREFIX@/functions.sh
+source @PREFIX@/uml-functions.sh
 
 LINUX="linux"
 TESTDIR="."
