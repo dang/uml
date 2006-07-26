@@ -27,6 +27,10 @@ if [ -z "${TESTDIR}" ]; then
 	die "Error: conf file name \"${CONFFILE}\" invalid.  Must be in the form /path/to/file.conf"
 fi
 
+if [ "${TESTDIR}" == "." ]; then
+	TESTDIR=$(pwd)
+fi
+
 if [ -a ${TESTDIR}/${LINUX} ]; then
 	echo "Running ${TESTDIR}/${LINUX}"
 else
@@ -47,8 +51,24 @@ fi
 
 source ${CONFFILE}
 
-RUNDIR=${TESTDIR}/run
+# Set up the box directories
+for MACHINE in ${MACHINES}; do
+	if [ ! -d ${TESTDIR}/${MACHINE}/conf.d ]; then
+		if [ ! -d ${TESTDIR}/../base ]; then
+			die "Cannot create machine directory for ${MACHINE}: no base dir"
+		fi
 
+		mkdir -p ${TESTDIR}/${MACHINE}/conf.d || die "Couldn't create ${TESTDIR}/${MACHINE}/conf.d"
+		cd ${TESTDIR}/${MACHINE}/conf.d 
+		for i in $(/bin/ls ${TESTDIR}/../base/conf.d); do
+			ln -s ${TESTDIR}/../base/conf.d/$i || die "Couldn't symlink $i"
+		done
+		cd ${TESTDIR}
+	fi
+done
+
+# Set up the runtime state
+RUNDIR=${TESTDIR}/run
 if [ "${PERSISTENT_ROOTFS:=no}" != "yes" ]; then
 	echo "Running non-persistent"
 	rm -rf ${RUNDIR}
