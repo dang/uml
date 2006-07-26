@@ -3,26 +3,26 @@
 # It is released under the GPL version 2
 #
 
-PREFIX=$(TOPPREFIX)/topologies
+INSTPREFIX=$(TOPPREFIX)/topologies
 INSTALL=install -c
 SUBDIRS=2-box base cluster
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
 	  echo "Making all in $$p"; \
-	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) all); \
+	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) all); \
 	done
 
 install: all
 	@list='$(SUBDIRS)'; for p in $$list; do \
 	  echo "Making install in $$p"; \
-	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) install); \
+	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) install); \
 	done
 
 dist:
 	@rm -rf .svn
 	@list='$(SUBDIRS)'; for p in $$list; do \
 	  echo "Making dist in $$p"; \
-	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) dist); \
+	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) dist); \
 	done
 

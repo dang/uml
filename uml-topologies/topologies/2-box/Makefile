@@ -3,15 +3,15 @@
 # It is released under the GPL version 2
 #
 
-PREFIX=$(TOPPREFIX)/2-box
+INSTPREFIX=$(TOPPREFIX)/2-box
 INSTALL=install
 FILES=2-box.conf
 
 all: $(FILES)
 
 install: all
-	$(INSTALL) -d $(PREFIX)
-	$(INSTALL) $(FILES) $(PREFIX)
+	$(INSTALL) -d $(INSTPREFIX)
+	$(INSTALL) $(FILES) $(INSTPREFIX)
 
 dist:
 	@rm -rf .svn

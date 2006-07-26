@@ -3,15 +3,15 @@
 # It is released under the GPL version 2
 #
 
-PREFIX=$(TOPPREFIX)/cluster
+INSTPREFIX=$(TOPPREFIX)/cluster
 INSTALL=install
 FILES=cluster.conf
 
 all: $(FILES)
 
 install: all
-	$(INSTALL) -d $(PREFIX)
-	$(INSTALL) $(FILES) $(PREFIX)
+	$(INSTALL) -d $(INSTPREFIX)
+	$(INSTALL) $(FILES) $(INSTPREFIX)
 
 dist:
 	@rm -rf .svn

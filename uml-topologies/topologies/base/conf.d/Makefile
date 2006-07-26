@@ -3,7 +3,7 @@
 # It is released under the GPL version 2
 #
 
-PREFIX=$(TOPPREFIX)/conf.d
+INSTPREFIX=$(TOPPREFIX)/conf.d
 INSTALL=install
 FILES= bootmisc clock consolefont crypto-loop domainname gpm hdparm \
 	keymaps local.stop net.example nfs portmap rc rsyncd snmpd snmptrapd \
@@ -12,8 +12,8 @@ FILES= bootmisc clock consolefont crypto-loop domainname gpm hdparm \
 all: $(FILES)
 
 install: all
-	$(INSTALL) -d $(PREFIX)
-	$(INSTALL) $(FILES) $(PREFIX)
+	$(INSTALL) -d $(INSTPREFIX)
+	$(INSTALL) $(FILES) $(INSTPREFIX)
 
 dist:
 	@rm -rf .svn
