@@ -1,0 +1,4 @@
+# /etc/conf.d/portmap: config file for /etc/init.d/portmap
+
+# Listen on localhost only by default
+#PORTMAP_OPTS="-l"

@@ -1,0 +1,6 @@
+# /etc/conf.d/hosts
+# GENERATED -- DO NOT EDIT
+127.0.0.1	localhost
+192.168.254.1	a.nexthop.com a
+192.168.254.2	b.nexthop.com b
+192.168.254.254	athena.fprintf.net athena

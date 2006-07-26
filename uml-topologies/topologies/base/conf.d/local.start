@@ -1,0 +1,6 @@
+# /etc/conf.d/local.start
+# GENERATED -- DO NOT EDIT
+echo 'core.%e-%p' > /proc/sys/kernel/core_pattern
+env-update
+ip addr add 192.1.1.1/32 dev lo
+ip addr add fec0:0:0:1111::1/128 dev lo
