@@ -4,7 +4,7 @@
 #
 
 INSTALL=install -c
-SUBDIRS=uml-topologies uml-test
+SUBDIRS=uml-topologies uml-tools
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
