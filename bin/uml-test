@@ -3,7 +3,7 @@
 # Set up a simulated domain using UML
 #
 
-source /home/dang/bin/functions.sh
+source @PREFIX@/functions.sh
 
 LINUX="linux"
 TESTDIR="."

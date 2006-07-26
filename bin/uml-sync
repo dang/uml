@@ -3,7 +3,7 @@
 # Start/stop the mounts for building UML images
 #
 
-source ${HOME}/bin/functions.sh
+source @PREFIX@/functions.sh
 
 CURDIR="$(pwd)"
 BUILDDIR="${CURDIR}/build"
