@@ -18,3 +18,10 @@ install: all
 	  echo "Making install in $$p"; \
 	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) install); \
 	done
+
+dist:
+	@rm -rf .svn
+	@list='$(SUBDIRS)'; for p in $$list; do \
+	  echo "Making dist in $$p"; \
+	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) dist); \
+	done

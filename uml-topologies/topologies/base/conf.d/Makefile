@@ -14,3 +14,7 @@ all: $(FILES)
 install: all
 	$(INSTALL) -d $(PREFIX)
 	$(INSTALL) $(FILES) $(PREFIX)
+
+dist:
+	@rm -rf .svn
+
