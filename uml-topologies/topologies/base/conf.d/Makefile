@@ -5,7 +5,7 @@
 
 INSTPREFIX=$(TOPPREFIX)/conf.d
 INSTALL=install
-FILES= bootmisc clock consolefont crypto-loop domainname gpm hdparm \
+FILES= bootmisc clock consolefont crypto-loop gpm hdparm \
 	keymaps local.stop net.example nfs portmap rc rsyncd snmpd snmptrapd \
 	sshd wireless.example
 

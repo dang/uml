@@ -10,6 +10,7 @@ TESTDIR="."
 MEM="64M"
 ROOTFS="root_fs"
 SWAPFS="swap_fs"
+HOST_DOMAIN=$(dnsdomainname)
 
 if [ -z "$1" ]; then
 	echo "Error: no conf file"
@@ -61,7 +62,7 @@ for MACHINE in ${MACHINES}; do
 		mkdir -p ${TESTDIR}/${MACHINE}/conf.d || die "Couldn't create ${TESTDIR}/${MACHINE}/conf.d"
 		cd ${TESTDIR}/${MACHINE}/conf.d 
 		for i in $(/bin/ls ${TESTDIR}/../base/conf.d); do
-			ln -s ${TESTDIR}/../base/conf.d/$i || die "Couldn't symlink $i"
+			cp ${TESTDIR}/../base/conf.d/$i . || die "Couldn't copy $i"
 		done
 		cd ${TESTDIR}
 	fi
@@ -143,6 +144,14 @@ for MACHINE in ${MACHINES}; do
 	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/hostname
 	echo -e "HOSTNAME='${MACHINE}'" >> ${CONFDIR}/hostname
 
+	# Create domainname
+	echo "domainname"
+	echo -e "# /etc/conf.d/domainname" > ${CONFDIR}/domainname
+	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/domainname
+	echo -e "OVERRIDE=1" >> ${CONFDIR}/domainname
+	echo -e "DNSDOMAIN=\"${HOST_DOMAIN}\"" >> ${CONFDIR}/domainname
+	echo -e "NISDOMAIN=\"nis.${HOST_DOMAIN}\"" >> ${CONFDIR}/domainname
+
 	# Create hosts
 	echo "hosts"
 	echo -e "# /etc/conf.d/hosts" > ${CONFDIR}/hosts
@@ -153,7 +162,7 @@ for MACHINE in ${MACHINES}; do
 		if [ -z "${!HOST_IP}" ]; then
 			die "No ${HOST_IP}"
 		fi
-		echo -e "${!HOST_IP}\t${HOST}.nexthop.com ${HOST}" >> ${CONFDIR}/hosts
+		echo -e "${!HOST_IP}\t${HOST}.${HOST_DOMAIN} ${HOST}" >> ${CONFDIR}/hosts
 	done
 	if [ -n "${HOST_IP4}" ]; then
 		# Add name of host
