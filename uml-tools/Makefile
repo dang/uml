@@ -4,7 +4,7 @@
 #
 
 PREFIX=/usr/bin
-INSTALL=install -c
+INSTALL=install
 FILES=uml-build uml-build-stop uml-functions.sh uml-start uml-sync uml-test
 
 all: $(FILES)
@@ -13,6 +13,7 @@ all: $(FILES)
 	done
 
 install: all
+	$(INSTALL) -d $(PREFIX)
 	$(INSTALL) $(FILES) $(PREFIX)
 
 dist:
