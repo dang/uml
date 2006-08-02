@@ -341,7 +341,7 @@ for MACHINE in ${MACHINES}; do
 	fi
 done
 
-if [ -n ${TESTMODE} ]; then
+if [ -n "${TESTMODE}" ]; then
 	# Done
 	exit
 fi
