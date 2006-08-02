@@ -102,16 +102,13 @@ if [ -n "${HOST_NETWORK}" ]; then
 	if [ -z "${!MASKLEN_IP4}" ]; then
 		die "Host is on network ${HOST_NETWORK} but it's not configured"
 	fi
-	HOST_IP4=${!HOST_NET_IP4}.${DEC_HOST}
-	if [ -z "${HOST_IP4}" ]; then
-		die "No HOST_IP4 address"
-	fi
+	generate_ip4 ${!HOST_NET_IP4} ${DEC_HOST}
 
 	TAPNAME="uml-tap${HOST_NETWORK}"
 
 	tunctl -u ${USER} -t ${TAPNAME}
 	sudo ip link set ${TAPNAME} up
-	sudo ip addr add ${HOST_IP4}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
+	sudo ip addr add ${GENERATE_IP4_RETURN}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
 
 	NET_IP6=NET_IP6_${HOST_NETWORK}
 	MASKLEN_IP6=NET_IP6_MASKLEN_${HOST_NETWORK}
@@ -217,7 +214,8 @@ for MACHINE in ${MACHINES}; do
 			DNS=${!DNS_IP}
 		elif [ -n "${HOST_NETWORK}" ]; then
 			TMP=DEC_${DNS_MCH}
-			DNS=${!HOST_NET_IP4}.${!TMP}
+			generate_ip4 ${!HOST_NET_IP4} ${!TMP}
+			DNS=${GENERATE_IP4_RETURN}
 		else
 			die "You must either set ${DNS_IP} or HOST_NETWORK"
 		fi
@@ -255,7 +253,8 @@ for MACHINE in ${MACHINES}; do
 		else
 			NETIP4=NET_IP4_${NET}
 			MASKLEN=NET_IP4_MASKLEN_${NET}
-			TMP="${!NETIP4}.${!DEC}/${!MASKLEN}"
+			generate_ip4 ${!NETIP4} ${!DEC}
+			TMP="${GENERATE_IP4_RETURN}/${!MASKLEN}"
 		fi
 		echo -e "config_${!NETDEV}=(" >> ${CONFDIR}/net
 		echo -e "\t\"${TMP}\"" >> ${CONFDIR}/net
