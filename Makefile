@@ -31,3 +31,7 @@ dist:
 changelog:
 	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
 	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs --html
+	@list='$(SUBDIRS)'; for p in $$list; do \
+	  echo "Making changelog in $$p"; \
+	  (cd $$p && $(MAKE) changelog); \
+	done

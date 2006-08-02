@@ -25,3 +25,6 @@ dist:
 	  echo "Making dist in $$p"; \
 	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) dist); \
 	done
+
+changelog:
+	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs

@@ -19,3 +19,5 @@ install: all
 dist:
 	@rm -rf .svn
 
+changelog:
+	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
