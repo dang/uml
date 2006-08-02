@@ -27,3 +27,7 @@ dist:
 	  mv $$p $$p-$(RELEASE); \
 	  tar -cjf $$p-$(RELEASE).tar.bz2 $$p-$(RELEASE)/; \
 	done
+
+changelog:
+	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
+	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs --html
