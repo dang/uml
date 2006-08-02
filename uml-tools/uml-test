@@ -3,7 +3,8 @@
 # Set up a simulated domain using UML
 #
 
-source @PREFIX@/uml-functions.sh
+#source @PREFIX@/uml-functions.sh
+source /usr/bin/uml-functions.sh
 
 LINUX="linux"
 TESTDIR="."
@@ -81,28 +82,59 @@ mkdir -p ${RUNDIR}
 
 # Configure host network access
 if [ -n "${HOST_NETWORK}" ]; then
+	HOST_NET_IP4=NET_IP4_${HOST_NETWORK}
+	if [ -z "${!HOST_NET_IP4}" ]; then
+		die "Host is on network ${HOST_NETWORK} but it's not configured"
+	fi
+	BCAST_IP4=NET_IP4_BCAST_${HOST_NETWORK}
+	if [ -z "${!BCAST_IP4}" ]; then
+		die "Host is on network ${HOST_NETWORK} but it's not configured"
+	fi
+	MASKLEN_IP4=NET_IP4_MASKLEN_${HOST_NETWORK}
+	if [ -z "${!MASKLEN_IP4}" ]; then
+		die "Host is on network ${HOST_NETWORK} but it's not configured"
+	fi
+	HOST_IP4=${!HOST_NET_IP4}.${DEC_HOST}
 	if [ -z "${HOST_IP4}" ]; then
 		die "No HOST_IP4 address"
-	fi
-	if [ -z "${HOST_IP4_MASKLEN}" ]; then
-		die "No HOST_IP4_MASKLEN address"
-	fi
-	if [ -z "${HOST_IP4_BCAST}" ]; then
-		die "No HOST_IP4_BCAST address"
 	fi
 
 	TAPNAME="uml-tap${HOST_NETWORK}"
 
 	tunctl -u ${USER} -t ${TAPNAME}
 	sudo ip link set ${TAPNAME} up
-	sudo ip addr add ${HOST_IP4}/${HOST_IP4_MASKLEN} broadcast ${HOST_IP4_BCAST} dev ${TAPNAME}
-	if [ -n "${HOST_IP6}" ]; then
-		sudo ip addr add ${HOST_IP6} dev ${TAPNAME}
+	sudo ip addr add ${HOST_IP4}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
+
+	NET_IP6=NET_IP6_${HOST_NETWORK}
+	MASKLEN_IP6=NET_IP6_MASKLEN_${HOST_NETWORK}
+	if [ -n "${!NET_IP6}" ] && [ -n "${!MASKLEN_IP6}" ]; then
+		sudo ip addr add ${!NET_IP6}::${HEX_HOST}/${!MASKLEN_IP6} dev ${TAPNAME}
 	fi
 fi
 
-# Start switch daemons for networks
+# Verify network config and start switch daemons for networks
 for NET in ${NETWORKS}; do
+	TMP=NET_IP4_${NET}
+	if [ -z ${!TMP} ]; then
+		die "${TMP} not configured"
+	fi
+	TMP=NET_IP4_MASKLEN_${NET}
+	if [ -z ${!TMP} ]; then
+		die "${TMP} not configured"
+	fi
+	TMP=NET_IP4_BCAST_${NET}
+	if [ -z ${!TMP} ]; then
+		die "${TMP} not configured"
+	fi
+	TMP=NET_IP6_${NET}
+	if [ -n ${!TMP} ]; then
+		# v6 is optional, but both are necessary.
+		TMP=NET_IP6_MASKLEN_${NET}
+		if [ -z ${!TMP} ]; then
+			die "${TMP} not configured"
+		fi
+	fi
+
 	#uml_switch -unix ${RUNDIR}/network${NET} -daemon > /dev/null 
 	if [ "z${HOST_NETWORK}" == "z${NET}" ]; then
 		uml_switch -unix ${RUNDIR}/network${NET} -tap ${TAPNAME} &
@@ -114,6 +146,14 @@ done
 # Create config for each box
 for MACHINE in ${MACHINES}; do
 	echo "Configuring ${MACHINE}"
+	HEX=HEX_${MACHINE}
+	if [ -z "${!HEX}" ]; then
+		die "No ${HEX} configured"
+	fi
+	DEC=DEC_${MACHINE}
+	if [ -z "${!DEC}" ]; then
+		die "No ${DEC} configured"
+	fi
 
 	if [ ! -d ${TESTDIR}/${MACHINE} ]; then
 		die "No config directory for ${MACHINE}"
@@ -132,10 +172,16 @@ for MACHINE in ${MACHINES}; do
 	LOOP=LOOP_IP4_${MACHINE}
 	if [ -n "${!LOOP}" ]; then
 		echo -e "ip addr add ${!LOOP} dev lo" >> ${CONFDIR}/local.start
+	else
+		LOOP="192.${!DEC}.${!DEC}.${!DEC}/32"
+		echo -e "ip addr add ${LOOP} dev lo" >> ${CONFDIR}/local.start
 	fi
 	LOOP=LOOP_IP6_${MACHINE}
 	if [ -n "${!LOOP}" ]; then
 		echo -e "ip addr add ${!LOOP} dev lo" >> ${CONFDIR}/local.start
+	else
+		LOOP="fec0:${!HEX}${!HEX}:${!HEX}${!HEX}:${!HEX}${!HEX}::${!HEX}/128"
+		echo -e "ip addr add ${LOOP} dev lo" >> ${CONFDIR}/local.start
 	fi
 
 	# Create hostname
@@ -157,12 +203,17 @@ for MACHINE in ${MACHINES}; do
 	echo -e "# /etc/conf.d/hosts" > ${CONFDIR}/hosts
 	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/hosts
 	echo -e "127.0.0.1\tlocalhost" >> ${CONFDIR}/hosts
-	for HOST in ${MACHINES}; do
-		HOST_IP=DNS_IP_${HOST}
-		if [ -z "${!HOST_IP}" ]; then
-			die "No ${HOST_IP}"
+	for DNS_MCH in ${MACHINES}; do
+		DNS_IP=DNS_IP_${DNS_MCH}
+		if [ -n "${!DNS_IP}" ]; then
+			DNS=${!DNS_IP}
+		elif [ -n "${HOST_NETWORK}" ]; then
+			TMP=DEC_${DNS_MCH}
+			DNS=${!HOST_NET_IP4}.${!TMP}
+		else
+			die "You must either set ${DNS_IP} or HOST_NETWORK"
 		fi
-		echo -e "${!HOST_IP}\t${HOST}.${HOST_DOMAIN} ${HOST}" >> ${CONFDIR}/hosts
+		echo -e "${DNS}\t${DNS_MCH}.${HOST_DOMAIN} ${DNS_MCH}" >> ${CONFDIR}/hosts
 	done
 	if [ -n "${HOST_IP4}" ]; then
 		# Add name of host
@@ -179,21 +230,37 @@ for MACHINE in ${MACHINES}; do
 		die "No ${NETS}"
 	fi
 	for NET in ${!NETS}; do
+		# Verify network is configured
+		TMP=NET_IP4_${NET}
+		if [ -z "${!TMP}" ]; then
+			die "Network ${NET} not configured"
+		fi
+
 		NETDEV=NETDEV_${MACHINE}_${NET}
-		NETIP4=NETIP4_${MACHINE}_${NET}
-		NETIP6=NETIP6_${MACHINE}_${NET}
 		if [ -z "${!NETDEV}" ]; then
 			die "No ${NETDEV}"
 		fi
+
+		NETIP4=NETIP4_${MACHINE}_${NET}
+		if [ -n "${!NETIP4}" ]; then
+			TMP=${!NETIP4}
+		else
+			NETIP4=NET_IP4_${NET}
+			MASKLEN=NET_IP4_MASKLEN_${NET}
+			TMP="${!NETIP4}.${!DEC}/${!MASKLEN}"
+		fi
 		echo -e "config_${!NETDEV}=(" >> ${CONFDIR}/net
-		if [ -z "${!NETIP4}" ]; then
-			die "No ${NETIP4}"
+		echo -e "\t\"${TMP}\"" >> ${CONFDIR}/net
+
+		NETIP6=NETIP6_${MACHINE}_${NET}
+		if [ -n "${!NETIP6}" ]; then
+			TMP=${!NETIP6}
+		else
+			NETIP6=NET_IP6_${NET}
+			MASKLEN=NET_IP6_MASKLEN_${NET}
+			TMP="${!NETIP6}::${!HEX}/${!MASKLEN}"
 		fi
-		echo -e "\t\"${!NETIP4}\"" >> ${CONFDIR}/net
-		if [ -z "${!NETIP6}" ]; then
-			die "No ${NETIP6}"
-		fi
-		echo -e "\t\"${!NETIP6}\"" >> ${CONFDIR}/net
+		echo -e "\t\"${TMP}\"" >> ${CONFDIR}/net
 		echo -e ")" >> ${CONFDIR}/net
 	done
 
@@ -207,9 +274,9 @@ fi
 for MACHINE in ${MACHINES}; do
 	ETHLINE=""
 
-	TMAC=MAC_${MACHINE}
+	TMAC=HEX_${MACHINE}
 	if [ -z "${!TMAC}" ]; then
-		die "No MAC byte configured for ${MACHINE}"
+		die "No HEX octet configured for ${MACHINE}"
 	fi
 
 	NETS=NETWORKS_${MACHINE}
@@ -234,7 +301,7 @@ for MACHINE in ${MACHINES}; do
 	#echo sudo mount -o bind /home ${TESTDIR}/${MACHINE}/home
 
 	echo "Starting ${MACHINE}"
-	screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
+	echo screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
 		ubd0=${RUNDIR}/${ROOTFS}.${MACHINE}.cow,${TESTDIR}/${ROOTFS} \
  		ubd1=${RUNDIR}/${SWAPFS}.${MACHINE}.cow,${TESTDIR}/${SWAPFS} \
 		mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE}/conf.d \
