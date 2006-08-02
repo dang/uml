@@ -5,33 +5,37 @@
 
 INSTALL=install -c
 SUBDIRS=uml-topologies uml-tools
+CHANGELOGS=ChangeLog ChangeLog.html
 RELEASE=0.3
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
-	  echo "Making all in $$p"; \
-	  (cd $$p && $(MAKE) all); \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && $(MAKE) $@); \
 	done
 
 install: all
 	@list='$(SUBDIRS)'; for p in $$list; do \
-	  echo "Making install in $$p"; \
-	  (cd $$p && $(MAKE) install); \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && $(MAKE) $@); \
 	done
 
-dist: changelog
+dist: $(CHANGELOGS)
 	@rm -rf .svn
 	@list='$(SUBDIRS)'; for p in $$list; do \
-	  echo "Making dist in $$p"; \
-	  (cd $$p && $(MAKE) dist); \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && $(MAKE) $@); \
 	  mv $$p $$p-$(RELEASE); \
 	  tar -cjf $$p-$(RELEASE).tar.bz2 $$p-$(RELEASE)/; \
 	done
 
-changelog: ChangeLog ChangeLog.html
+$(CHANGELOGS):
 	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
 	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs --html
+
+clean:
 	@list='$(SUBDIRS)'; for p in $$list; do \
-	  echo "Making changelog in $$p"; \
-	  (cd $$p && $(MAKE) changelog); \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && $(MAKE) $@); \
 	done
+	@rm -rf $(CHANGELOGS)

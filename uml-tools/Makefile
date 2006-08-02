@@ -6,6 +6,7 @@
 PREFIX=/usr/bin
 INSTALL=install
 FILES=uml-build uml-build-stop uml-functions.sh uml-start uml-sync uml-test
+CHANGELOGS=ChangeLog
 
 all: $(FILES)
 	@list='$(FILES)'; for p in $$list; do \
@@ -16,8 +17,11 @@ install: all
 	$(INSTALL) -d $(PREFIX)
 	$(INSTALL) $(FILES) $(PREFIX)
 
-dist:
+dist: $(CHANGELOGS)
 	@rm -rf .svn
 
-changelog: ChangeLog
-	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
+$(CHANGELOGS):
+	@svn2cl --break-before-msg --authors=../authors.xml --group-by-day --separate-daylogs
+
+clean:
+	@rm -rf $(CHANGELOGS)

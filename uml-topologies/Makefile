@@ -6,6 +6,7 @@
 PREFIX=/opt/uml-topologies
 INSTALL=install -c
 SUBDIRS=topologies
+CHANGELOGS=ChangeLog
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
@@ -19,12 +20,19 @@ install: all
 	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) install); \
 	done
 
-dist:
+dist: $(CHANGELOGS)
 	@rm -rf .svn
 	@list='$(SUBDIRS)'; for p in $$list; do \
 	  echo "Making dist in $$p"; \
 	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) dist); \
 	done
 
-changelog: ChangeLog
-	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
+$(CHANGELOGS):
+	@svn2cl --break-before-msg --authors=../authors.xml --group-by-day --separate-daylogs
+
+clean:
+	@list='$(SUBDIRS)'; for p in $$list; do \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && $(MAKE) $@); \
+	done
+	@rm -rf $(CHANGELOGS)

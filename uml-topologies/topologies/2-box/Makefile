@@ -16,3 +16,4 @@ install: all
 dist:
 	@rm -rf .svn
 
+clean:

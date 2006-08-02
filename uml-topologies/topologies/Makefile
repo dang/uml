@@ -9,20 +9,25 @@ SUBDIRS=2-box base cluster
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
-	  echo "Making all in $$p"; \
-	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) all); \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) $@); \
 	done
 
 install: all
 	@list='$(SUBDIRS)'; for p in $$list; do \
-	  echo "Making install in $$p"; \
-	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) install); \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) $@); \
 	done
 
 dist:
 	@rm -rf .svn
 	@list='$(SUBDIRS)'; for p in $$list; do \
-	  echo "Making dist in $$p"; \
-	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) dist); \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && TOPPREFIX=$(INSTPREFIX) $(MAKE) $@); \
 	done
 
+clean:
+	@list='$(SUBDIRS)'; for p in $$list; do \
+	  echo "Making $@ in $$p"; \
+	  (cd $$p && $(MAKE) $@); \
+	done
