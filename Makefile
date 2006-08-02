@@ -19,7 +19,7 @@ install: all
 	  (cd $$p && $(MAKE) install); \
 	done
 
-dist:
+dist: changelog
 	@rm -rf .svn
 	@list='$(SUBDIRS)'; for p in $$list; do \
 	  echo "Making dist in $$p"; \
@@ -28,7 +28,7 @@ dist:
 	  tar -cjf $$p-$(RELEASE).tar.bz2 $$p-$(RELEASE)/; \
 	done
 
-changelog:
+changelog: ChangeLog ChangeLog.html
 	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
 	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs --html
 	@list='$(SUBDIRS)'; for p in $$list; do \

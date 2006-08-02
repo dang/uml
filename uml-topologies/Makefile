@@ -26,5 +26,5 @@ dist:
 	  (cd $$p && TOPPREFIX=$(PREFIX) $(MAKE) dist); \
 	done
 
-changelog:
+changelog: ChangeLog
 	@svn2cl --break-before-msg --authors=authors.xml --group-by-day --separate-daylogs
