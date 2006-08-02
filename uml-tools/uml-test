@@ -3,8 +3,16 @@
 # Set up a simulated domain using UML
 #
 
-#source @PREFIX@/uml-functions.sh
-source /usr/bin/uml-functions.sh
+function UMLcleanup() {
+	# Stop our switches
+	killall uml_switch
+	# Clean up tap
+	if [ -n "${TAPNAME}" ]; then
+		tunctl -d ${TAPNAME}
+	fi
+}
+
+source @PREFIX@/uml-functions.sh
 
 LINUX="linux"
 TESTDIR="."
@@ -301,7 +309,7 @@ for MACHINE in ${MACHINES}; do
 	#echo sudo mount -o bind /home ${TESTDIR}/${MACHINE}/home
 
 	echo "Starting ${MACHINE}"
-	echo screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
+	screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
 		ubd0=${RUNDIR}/${ROOTFS}.${MACHINE}.cow,${TESTDIR}/${ROOTFS} \
  		ubd1=${RUNDIR}/${SWAPFS}.${MACHINE}.cow,${TESTDIR}/${SWAPFS} \
 		mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE}/conf.d \
@@ -313,9 +321,5 @@ if [ -n "${SCREENPIDS}" ]; then
 	wait ${SCREENPIDS}
 fi
 
-# Stop our switches
-killall uml_switch
-# Clean up tap
-if [ -n "${TAPNAME}" ]; then
-	tunctl -d ${TAPNAME}
-fi
+# clean up after ourselves
+UMLcleanup

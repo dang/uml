@@ -4,7 +4,7 @@
 
 die() {
 	echo "$@"
-	if [ ! -z `declare -F | grep "UMLcleanup"` ]; then
+	if [ ! -z "$(declare -F | grep "UMLcleanup")" ]; then
 		UMLcleanup
 	fi
 	exit 1
