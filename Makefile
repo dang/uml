@@ -5,6 +5,7 @@
 
 INSTALL=install -c
 SUBDIRS=uml-topologies uml-tools
+RELEASE=0.2
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
@@ -23,4 +24,6 @@ dist:
 	@list='$(SUBDIRS)'; for p in $$list; do \
 	  echo "Making dist in $$p"; \
 	  (cd $$p && $(MAKE) dist); \
+	  mv $$p $$p-$(RELEASE); \
+	  tar -cjf $$p-$(RELEASE).tar.bz2 $$p-$(RELEASE)/; \
 	done
