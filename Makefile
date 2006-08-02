@@ -5,7 +5,7 @@
 
 INSTALL=install -c
 SUBDIRS=uml-topologies uml-tools
-RELEASE=0.2
+RELEASE=0.3
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \

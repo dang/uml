@@ -3,6 +3,12 @@
 # Set up a simulated domain using UML
 #
 
+# Set usage output
+USAGE="[-ht] <config-file>"
+LONGUSAGE="\t-h\tPrint this help message
+\t-t\tTest mode.  Doesn't start any processes, but generates config
+\t<config-file>\tConfig file to run"
+
 function UMLcleanup() {
 	# Stop our switches
 	killall uml_switch
@@ -21,9 +27,22 @@ ROOTFS="root_fs"
 SWAPFS="swap_fs"
 HOST_DOMAIN=$(dnsdomainname)
 
+# Parse arguments
+while getopts ":ht" option; do
+	case ${option} in
+		t ) TESTMODE="yes";;
+		h ) usage;;
+		\? ) usage "Invalid argument ${OPTARG}";;
+		* ) usage "Invalid argument ${option}";;
+	esac
+done
+
+if [ "${OPTIND}" != "0" ]; then
+	shift $((OPTIND-1))
+fi
+
 if [ -z "$1" ]; then
-	echo "Error: no conf file"
-	die "`basename $0` <conf file>"
+	usage "Error: no conf file"
 fi
 
 CONFFILE=$1
@@ -43,19 +62,19 @@ fi
 
 if [ -a ${TESTDIR}/${LINUX} ]; then
 	echo "Running ${TESTDIR}/${LINUX}"
-else
+elif [ -z ${TESTMODE} ]; then
 	die "No ${TESTDIR}/${LINUX}"
 fi
 
 if [ -a ${TESTDIR}/${ROOTFS} ]; then
 	echo "root_fs: ${TESTDIR}/${ROOTFS}"
-else
+elif [ -z ${TESTMODE} ]; then
 	die "No ${TESTDIR}/${ROOTFS}"
 fi
 
 if [ -a ${TESTDIR}/${SWAPFS} ]; then
 	echo "root_fs: ${TESTDIR}/${SWAPFS}"
-else
+elif [ -z ${TESTMODE} ]; then
 	die "No ${TESTDIR}/${SWAPFS}"
 fi
 
@@ -106,14 +125,16 @@ if [ -n "${HOST_NETWORK}" ]; then
 
 	TAPNAME="uml-tap${HOST_NETWORK}"
 
-	tunctl -u ${USER} -t ${TAPNAME}
-	sudo ip link set ${TAPNAME} up
-	sudo ip addr add ${GENERATE_IP4_RETURN}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
+	if [ -z ${TESTMODE} ]; then
+		tunctl -u ${USER} -t ${TAPNAME}
+		sudo ip link set ${TAPNAME} up
+		sudo ip addr add ${GENERATE_IP4_RETURN}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
 
-	NET_IP6=NET_IP6_${HOST_NETWORK}
-	MASKLEN_IP6=NET_IP6_MASKLEN_${HOST_NETWORK}
-	if [ -n "${!NET_IP6}" ] && [ -n "${!MASKLEN_IP6}" ]; then
-		sudo ip addr add ${!NET_IP6}::${HEX_HOST}/${!MASKLEN_IP6} dev ${TAPNAME}
+		NET_IP6=NET_IP6_${HOST_NETWORK}
+		MASKLEN_IP6=NET_IP6_MASKLEN_${HOST_NETWORK}
+		if [ -n "${!NET_IP6}" ] && [ -n "${!MASKLEN_IP6}" ]; then
+			sudo ip addr add ${!NET_IP6}::${HEX_HOST}/${!MASKLEN_IP6} dev ${TAPNAME}
+		fi
 	fi
 fi
 
@@ -140,11 +161,12 @@ for NET in ${NETWORKS}; do
 		fi
 	fi
 
-	#uml_switch -unix ${RUNDIR}/network${NET} -daemon > /dev/null 
-	if [ "z${HOST_NETWORK}" == "z${NET}" ]; then
-		uml_switch -unix ${RUNDIR}/network${NET} -tap ${TAPNAME} &
-	else
-		uml_switch -unix ${RUNDIR}/network${NET} &
+	if [ -z ${TESTMODE} ]; then
+		if [ "z${HOST_NETWORK}" == "z${NET}" ]; then
+			uml_switch -unix ${RUNDIR}/network${NET} -tap ${TAPNAME} &
+		else
+			uml_switch -unix ${RUNDIR}/network${NET} &
+		fi
 	fi
 done
 
@@ -307,13 +329,23 @@ for MACHINE in ${MACHINES}; do
 	#echo sudo mount -o bind /share ${TESTDIR}/${MACHINE}/share
 	#echo sudo mount -o bind /home ${TESTDIR}/${MACHINE}/home
 
-	echo "Starting ${MACHINE}"
-	screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
-		ubd0=${RUNDIR}/${ROOTFS}.${MACHINE}.cow,${TESTDIR}/${ROOTFS} \
- 		ubd1=${RUNDIR}/${SWAPFS}.${MACHINE}.cow,${TESTDIR}/${SWAPFS} \
-		mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE}/conf.d \
-		${XTERMLINE} &
+	if [ -z ${TESTMODE} ]; then
+		echo "Starting ${MACHINE}"
+		screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
+			ubd0=${RUNDIR}/${ROOTFS}.${MACHINE}.cow,${TESTDIR}/${ROOTFS} \
+ 			ubd1=${RUNDIR}/${SWAPFS}.${MACHINE}.cow,${TESTDIR}/${SWAPFS} \
+			mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE}/conf.d \
+			${XTERMLINE} &
+	else
+		echo "Test mode; not starting ${MACHINE}"
+	fi
 done
+
+if [ -n ${TESTMODE} ]; then
+	# Done
+	exit
+fi
+
 sleep 1
 SCREENPIDS=$(screen -ls | grep uml | awk -F . '{print $1}')
 if [ -n "${SCREENPIDS}" ]; then
