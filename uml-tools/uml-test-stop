@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# Stop a running UML test
+#
+
+# Set usage output
+USAGE="[-h] <config-file>"
+LONGUSAGE="\t-h\tPrint this help message
+\t<config-file>\tConfig file to stop"
+
+source @PREFIX@/uml-functions.sh
+
+# Parse arguments
+while getopts ":h" option; do
+	case ${option} in
+		h ) usage;;
+		\? ) usage "Invalid argument ${OPTARG}";;
+		* ) usage "Invalid argument ${option}";;
+	esac
+done
+
+if [ "${OPTIND}" != "0" ]; then
+	shift $((OPTIND-1))
+fi
+
+if [ -z "$1" ]; then
+	usage "Error: no conf file"
+fi
+
+CONFFILE=$1
+source ${CONFFILE}
+
+# Stop all the machines
+for MACHINE in ${MACHINES}; do
+	uml_mconsole ${MACHINE} halt
+done
+
