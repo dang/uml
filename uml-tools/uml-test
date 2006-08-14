@@ -10,15 +10,28 @@ LONGUSAGE="\t-h\tPrint this help message
 \t<config-file>\tConfig file to run"
 
 function UMLcleanup() {
-	# Stop our switches
-	killall uml_switch
-	# Clean up tap
-	if [ -n "${TAPNAME}" ]; then
-		tunctl -d ${TAPNAME}
+	# Don't clean up if the user said to keep running
+	if [ "${PERSISTENT_ROOTFS}" != "yes" ]; then
+		# Stop machines
+		for MACHINE in ${MACHINES}; do
+			uml_mconsole ${MACHINE} halt > /dev/null 2>&1
+		done
+		# Stop our switches
+		killall -q uml_switch
+		# Clean up tap
+		if [ -n "${TAPNAME}" ]; then
+			tunctl -d ${TAPNAME} > /dev/null 2>&1
+		fi
+	else
+		echo "Not killing your UMLs because you have PERSISTENT_ROOTFS set"
+		echo "To stop them, run uml-test-stop ${CONFFILE}"
 	fi
 }
 
 source @PREFIX@/uml-functions.sh
+
+# Cleanup on SIGINT
+trap UMLcleanup SIGINT
 
 LINUX="linux"
 TESTDIR="."
@@ -163,9 +176,9 @@ for NET in ${NETWORKS}; do
 
 	if [ -z ${TESTMODE} ]; then
 		if [ "z${HOST_NETWORK}" == "z${NET}" ]; then
-			uml_switch -unix ${RUNDIR}/network${NET} -tap ${TAPNAME} &
+			uml_switch -daemon -unix ${RUNDIR}/network${NET} -tap ${TAPNAME} &
 		else
-			uml_switch -unix ${RUNDIR}/network${NET} &
+			uml_switch -daemon -unix ${RUNDIR}/network${NET} &
 		fi
 	fi
 done
