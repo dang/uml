@@ -27,5 +27,5 @@ cd ${CURDIR}
 
 # Mount image
 sudo mount -o loop ${IMG} ${MNTDIR} || die "Couldn't mount ${IMG}"
-sudo rsync -av --delete --progress ${BUILDDIR}/ ${MNTDIR} || die "rsync failed"
+sudo rsync -avS --delete --progress ${BUILDDIR}/ ${MNTDIR} || die "rsync failed"
 sudo umount ${MNTDIR} || die "Couldn't unmount ${MNTDIR}"
