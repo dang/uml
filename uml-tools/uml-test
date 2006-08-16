@@ -344,7 +344,7 @@ for MACHINE in ${MACHINES}; do
 
 	if [ -z ${TESTMODE} ]; then
 		echo "Starting ${MACHINE}"
-		screen -DmS uml-${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
+		screen -DmS uml-${MACHINE} -t ${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
 			ubd0=${RUNDIR}/${ROOTFS}.${MACHINE}.cow,${TESTDIR}/${ROOTFS} \
  			ubd1=${RUNDIR}/${SWAPFS}.${MACHINE}.cow,${TESTDIR}/${SWAPFS} \
 			mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE}/conf.d \
