@@ -6,30 +6,24 @@
 source @PREFIX@/uml-functions.sh
 
 ROOTPATH="."
-LINUX="kernel/linux/linux"
+LINUX="linux"
 MEM="64M"
 ROOTFS="root_fs"
 SWAPFS="swap_fs"
 
 if [ -z "$1" ]; then
 	echo "Error: no umlname"
-	usage " <umlname> <MAC Byte> [ <path-to-rundir> ] [ <mem> ]"
+	usage " <umlname> [ <path-to-rundir> ] [ <mem> ]"
 fi
-
-#if [ -z "$2" ]; then
-#	echo "Error: no command"
-#	usage " <umlname> <MAC Byte> [ <path-to-rundir> ] [ <mem> ]"
-#fi
 
 UMID=$1
-#MACBYTE=$2
 
-if [ -n "$3" ]; then
-	ROOTPATH=$3
+if [ -n "$2" ]; then
+	ROOTPATH=$2
 fi
 
-if [ -n "$4" ]; then
-	MEM=$4
+if [ -n "$3" ]; then
+	MEM=$3
 fi
 
 if [ -n "$FSCK" ]; then
