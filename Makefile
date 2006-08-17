@@ -6,7 +6,7 @@
 INSTALL=install -c
 SUBDIRS=uml-topologies uml-tools
 CHANGELOGS=ChangeLog ChangeLog.html
-RELEASE=0.3
+RELEASE=0.4
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
