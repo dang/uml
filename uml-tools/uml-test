@@ -103,7 +103,21 @@ for MACHINE in ${MACHINES}; do
 		mkdir -p ${TESTDIR}/${MACHINE}/conf.d || die "Couldn't create ${TESTDIR}/${MACHINE}/conf.d"
 		cd ${TESTDIR}/${MACHINE}/conf.d 
 		for i in $(/bin/ls ${TESTDIR}/../base/conf.d); do
-			cp ${TESTDIR}/../base/conf.d/$i . || die "Couldn't copy $i"
+			cp -d ${TESTDIR}/../base/conf.d/$i . || die "Couldn't copy $i"
+		done
+		cd ${TESTDIR}
+	fi
+	if [ ! -d ${TESTDIR}/${MACHINE}/default ]; then
+		if [ ! -d ${TESTDIR}/../base ]; then
+			die "Cannot create machine directory for ${MACHINE}: no base dir"
+		fi
+
+		mkdir -p ${TESTDIR}/${MACHINE}/default || die "Couldn't create ${TESTDIR}/${MACHINE}/default"
+		cd ${TESTDIR}/${MACHINE}/default 
+		pwd
+		for i in $(/bin/ls ${TESTDIR}/../base/default); do
+			echo $i
+			cp -d ${TESTDIR}/../base/default/$i . || die "Couldn't copy $i"
 		done
 		cd ${TESTDIR}
 	fi
@@ -261,7 +275,7 @@ for MACHINE in ${MACHINES}; do
 		echo -e "${HOST_IP4}\t$(hostname).$(dnsdomainname) $(hostname)" >> ${CONFDIR}/hosts
 	fi
 
-	# Create net
+	# Create net and net.<filename>
 	echo "net"
 	echo -e "# /etc/conf.d/net" > ${CONFDIR}/net
 	echo -e "# GENERATED -- DO NOT EDIT" >> ${CONFDIR}/net
@@ -281,6 +295,9 @@ for MACHINE in ${MACHINES}; do
 		if [ -z "${!NETDEV}" ]; then
 			die "No ${NETDEV}"
 		fi
+
+		# Make net.${!NETDEV} symlink to autostart network
+		ln -sf /etc/init.d/net.lo ${TESTDIR}/${MACHINE}/default/net.${!NETDEV}
 
 		NETIP4=NETIP4_${MACHINE}_${NET}
 		if [ -n "${!NETIP4}" ]; then
@@ -347,7 +364,7 @@ for MACHINE in ${MACHINES}; do
 		screen -DmS uml-${MACHINE} -t ${MACHINE} ${TESTDIR}/${LINUX} umid=${MACHINE} \
 			ubd0=${RUNDIR}/${ROOTFS}.${MACHINE}.cow,${TESTDIR}/${ROOTFS} \
  			ubd1=${RUNDIR}/${SWAPFS}.${MACHINE}.cow,${TESTDIR}/${SWAPFS} \
-			mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE}/conf.d \
+			mem=${MEM} ${ETHLINE} hostfs=${TESTDIR}/${MACHINE} \
 			${XTERMLINE} &
 	else
 		echo "Test mode; not starting ${MACHINE}"
