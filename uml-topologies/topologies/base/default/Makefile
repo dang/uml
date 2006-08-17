@@ -5,6 +5,7 @@
 
 INSTPREFIX=$(TOPPREFIX)/default
 INSTALL=install
+CPSYMLINK=cp -d
 FILES= local netmount portmap sshd syslog-ng
 LN=ln -s
 
@@ -15,7 +16,7 @@ $(FILES):
 
 install: all
 	$(INSTALL) -d $(INSTPREFIX)
-	$(INSTALL) $(FILES) $(INSTPREFIX)
+	$(CPSYMLINK) $(FILES) $(INSTPREFIX)
 
 dist:
 	@rm -rf .svn
