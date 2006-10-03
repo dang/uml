@@ -193,7 +193,7 @@ if [ -n "${HOST_NETWORK}" ]; then
 	TAPNAME="uml-tap${HOST_NETWORK}"
 
 	if [ -z ${TESTMODE} ]; then
-		tunctl -u ${USER} -t ${TAPNAME}
+		sudo tunctl -u ${USER} -t ${TAPNAME}
 		sudo ip link set ${TAPNAME} up
 		sudo ip addr add ${RETVAL}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
 
