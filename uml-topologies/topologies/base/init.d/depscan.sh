@@ -1,1 +1,0 @@
-../../sbin/depscan.sh
