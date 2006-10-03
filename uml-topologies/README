@@ -4,18 +4,25 @@ Contact dang@fprintf.net with questions/comments/ideas.
 
 Requirements for the image for these tests:
 
-- Gentoo image
-- A directory /var/umlstate
-- Move /etc/runlevels/default to /var/umlstate
-	- /var/umlstate/default should have anything you want the image to boot with in the
-	  absence of a test being run
-- Symlink /var/umlstate/default to /etc/runlevels/
-- Move /etc/conf.d to /var/umlstate
+- In a gentoo image:
+  - A directory /var/umlstate
+  - Move /etc/runlevels/default to /var/umlstate
+	- /var/umlstate/default should have anything you want the image to boot
+	  with in the absence of a test being run
+  - Symlink /var/umlstate/default to /etc/runlevels/
+  - Move /etc/conf.d to /var/umlstate
 	- /var/umlstate/conf.d should have default configuration for the image for booting
 	  without a test
-- Symlink /var/umlstate/conf.d to /etc/
-- Add this line to /etc/fstab:
+  - Symlink /var/umlstate/conf.d to /etc/
+  - Move /etc/init.d to /var/umlstate
+	- /var/umlstate/init.d should have default init scripts for the image for booting
+	  without a test
+  - Symlink /var/umlstate/init.d to /etc/
+  - Add this line to /etc/fstab:
 	none        /var/umlstate   hostfs  defaults            0 0
+  - If you want hostname setting to work correctly, you'll need to modify checkroot to
+    mount /var/umlstate right after it remount / rw.  If you don't care about that, then
+    it's okay, as filesystems get mounted right after hostname and kernel modules.
 
 That's it.  With such an image, you can run arbitrary topologies via uml-test and a
 topology.conf file.
