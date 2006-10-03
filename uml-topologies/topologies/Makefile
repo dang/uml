@@ -5,7 +5,7 @@
 
 INSTPREFIX=$(TOPPREFIX)/topologies
 INSTALL=install -c
-SUBDIRS=2-box base cluster
+SUBDIRS=1-box 2-box base cluster
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
