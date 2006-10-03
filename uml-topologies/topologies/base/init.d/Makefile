@@ -10,7 +10,7 @@ LN=ln -s
 FILES= bootmisc checkfs checkroot clock consolefont crypto-loop distccd \
 	domainname gpm halt.sh hdparm hostname keymaps local localmount modules \
 	net.lo netmount nscd ntp-client ntpd numlock portmap reboot.sh rmnologin \
-	rsyncd shutdown.sh snmpd snmptrapd sshd syslog-ng urandom vixie-cron
+	rsyncd shutdown.sh snmpd snmptrapd sshd syslog-ng urandom vixie-cron \
 	ypbind
 LINKS= runscript.sh functions.sh depscan.sh
 
