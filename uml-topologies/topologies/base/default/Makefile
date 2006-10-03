@@ -6,8 +6,8 @@
 INSTPREFIX=$(TOPPREFIX)/default
 INSTALL=install
 CPSYMLINK=cp -d
-FILES= local netmount portmap sshd syslog-ng
 LN=ln -s
+FILES= local netmount portmap sshd syslog-ng
 
 all: $(FILES)
 

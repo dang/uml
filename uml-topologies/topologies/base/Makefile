@@ -5,7 +5,7 @@
 
 INSTPREFIX=$(TOPPREFIX)/base
 INSTALL=install -c
-SUBDIRS=conf.d default
+SUBDIRS=conf.d default init.d
 
 all: $(SUBDIRS)
 	@list='$(SUBDIRS)'; for p in $$list; do \
