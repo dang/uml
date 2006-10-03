@@ -39,7 +39,9 @@ MEM="64M"
 ROOTFS="root_fs"
 SWAPFS="swap_fs"
 HOST_DOMAIN=$(dnsdomainname)
+declare -i count=0
 
+# Main
 # Parse arguments
 while getopts ":ht" option; do
 	case ${option} in
@@ -93,7 +95,7 @@ fi
 
 source ${CONFFILE}
 
-# Set up the box directories
+# Set up the box directories and unique octets
 for MACHINE in ${MACHINES}; do
 	if [ ! -d ${TESTDIR}/${MACHINE}/conf.d ]; then
 		if [ ! -d ${TESTDIR}/../base ]; then
@@ -104,6 +106,18 @@ for MACHINE in ${MACHINES}; do
 		cd ${TESTDIR}/${MACHINE}/conf.d 
 		for i in $(/bin/ls ${TESTDIR}/../base/conf.d); do
 			cp -d ${TESTDIR}/../base/conf.d/$i . || die "Couldn't copy $i"
+		done
+		cd ${TESTDIR}
+	fi
+	if [ ! -d ${TESTDIR}/${MACHINE}/init.d ]; then
+		if [ ! -d ${TESTDIR}/../base ]; then
+			die "Cannot create machine directory for ${MACHINE}: no base dir"
+		fi
+
+		mkdir -p ${TESTDIR}/${MACHINE}/init.d || die "Couldn't create ${TESTDIR}/${MACHINE}/init.d"
+		cd ${TESTDIR}/${MACHINE}/init.d 
+		for i in $(/bin/ls ${TESTDIR}/../base/init.d); do
+			cp -d ${TESTDIR}/../base/init.d/$i . || die "Couldn't copy $i"
 		done
 		cd ${TESTDIR}
 	fi
@@ -121,6 +135,29 @@ for MACHINE in ${MACHINES}; do
 		done
 		cd ${TESTDIR}
 	fi
+
+	# We need unique octets for all machines later.  Generate them now, if
+	# they're not configured.
+	getdec ${MACHINE}
+	if [ "$?" -ne "0" ]; then
+		die "getdec() failed"
+	fi
+	declare DEC_${MACHINE}=${RETVAL}
+	DEC=DEC_${MACHINE}
+	if [ -z "${!DEC}" ]; then
+		die "No ${DEC} configured"
+	fi
+
+	gethex ${MACHINE} ${!DEC}
+	if [ "$?" -ne "0" ]; then
+		die "gethex() failed"
+	fi
+	declare HEX_${MACHINE}=${RETVAL}
+	HEX=HEX_${MACHINE}
+	if [ -z "${!HEX}" ]; then
+		die "No ${HEX} configured"
+	fi
+
 done
 
 # Set up the runtime state
@@ -149,13 +186,16 @@ if [ -n "${HOST_NETWORK}" ]; then
 		die "Host is on network ${HOST_NETWORK} but it's not configured"
 	fi
 	generate_ip4 ${!HOST_NET_IP4} ${DEC_HOST}
+	if [ "$?" -ne "0" ]; then
+		die "generate_ip4() failed"
+	fi
 
 	TAPNAME="uml-tap${HOST_NETWORK}"
 
 	if [ -z ${TESTMODE} ]; then
 		tunctl -u ${USER} -t ${TAPNAME}
 		sudo ip link set ${TAPNAME} up
-		sudo ip addr add ${GENERATE_IP4_RETURN}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
+		sudo ip addr add ${RETVAL}/${!MASKLEN_IP4} broadcast ${!BCAST_IP4} dev ${TAPNAME}
 
 		NET_IP6=NET_IP6_${HOST_NETWORK}
 		MASKLEN_IP6=NET_IP6_MASKLEN_${HOST_NETWORK}
@@ -199,16 +239,11 @@ done
 
 # Create config for each box
 for MACHINE in ${MACHINES}; do
-	echo "Configuring ${MACHINE}"
-	HEX=HEX_${MACHINE}
-	if [ -z "${!HEX}" ]; then
-		die "No ${HEX} configured"
-	fi
+	# We set these above, if they weren't configured
 	DEC=DEC_${MACHINE}
-	if [ -z "${!DEC}" ]; then
-		die "No ${DEC} configured"
-	fi
+	HEX=HEX_${MACHINE}
 
+	echo "Configuring ${MACHINE}"
 	if [ ! -d ${TESTDIR}/${MACHINE} ]; then
 		die "No config directory for ${MACHINE}"
 	fi
@@ -264,7 +299,10 @@ for MACHINE in ${MACHINES}; do
 		elif [ -n "${HOST_NETWORK}" ]; then
 			TMP=DEC_${DNS_MCH}
 			generate_ip4 ${!HOST_NET_IP4} ${!TMP}
-			DNS=${GENERATE_IP4_RETURN}
+			if [ "$?" -ne "0" ]; then
+				die "generate_ip4() failed"
+			fi
+			DNS=${RETVAL}
 		else
 			die "You must either set ${DNS_IP} or HOST_NETWORK"
 		fi
@@ -282,7 +320,8 @@ for MACHINE in ${MACHINES}; do
 	echo -e "modules=( 'iproute2' )" >> ${CONFDIR}/net
 	NETS=NETWORKS_${MACHINE}
 	if [ -z "${!NETS}" ]; then
-		die "No ${NETS}"
+		# Default to all networks
+		declare NETWORKS_${MACHINE}="${NETWORKS}"
 	fi
 	for NET in ${!NETS}; do
 		# Verify network is configured
@@ -291,13 +330,16 @@ for MACHINE in ${MACHINES}; do
 			die "Network ${NET} not configured"
 		fi
 
-		NETDEV=NETDEV_${MACHINE}_${NET}
-		if [ -z "${!NETDEV}" ]; then
-			die "No ${NETDEV}"
+		getnetdev ${MACHINE} ${NET}
+		if [ "$?" -ne "0" ]; then
+			die "getnetdev() failed"
 		fi
+		NETDEV=${RETVAL}
 
-		# Make net.${!NETDEV} symlink to autostart network
-		ln -sf /etc/init.d/net.lo ${TESTDIR}/${MACHINE}/default/net.${!NETDEV}
+		# Make net.${NETDEV} symlink to net.lo
+		ln -sf /etc/init.d/net.lo ${TESTDIR}/${MACHINE}/init.d/net.${NETDEV}
+		# Make net.${NETDEV} symlink to autostart network
+		ln -sf /etc/init.d/net.lo ${TESTDIR}/${MACHINE}/default/net.${NETDEV}
 
 		NETIP4=NETIP4_${MACHINE}_${NET}
 		if [ -n "${!NETIP4}" ]; then
@@ -306,9 +348,12 @@ for MACHINE in ${MACHINES}; do
 			NETIP4=NET_IP4_${NET}
 			MASKLEN=NET_IP4_MASKLEN_${NET}
 			generate_ip4 ${!NETIP4} ${!DEC}
-			TMP="${GENERATE_IP4_RETURN}/${!MASKLEN}"
+			if [ "$?" -ne "0" ]; then
+				die "generate_ip4() failed"
+			fi
+			TMP="${RETVAL}/${!MASKLEN}"
 		fi
-		echo -e "config_${!NETDEV}=(" >> ${CONFDIR}/net
+		echo -e "config_${NETDEV}=(" >> ${CONFDIR}/net
 		echo -e "\t\"${TMP}\"" >> ${CONFDIR}/net
 
 		NETIP6=NETIP6_${MACHINE}_${NET}
@@ -346,8 +391,13 @@ for MACHINE in ${MACHINES}; do
 	# Build network list for each network
 	for NET in ${!NETS}; do
 		NETMACBYTE=$(printf "%02d" ${NET})
-		NETDEV=NETDEV_${MACHINE}_${NET}
-		ETHLINE="${ETHLINE} ${!NETDEV}=daemon,FE:FD:67:45:${NETMACBYTE}:${!TMAC},unix,${RUNDIR}/network${NET}"
+		getnetdev ${MACHINE} ${NET}
+		if [ "$?" -ne "0" ]; then
+			die "getnetdev() failed"
+		fi
+		NETDEV=${RETVAL}
+
+		ETHLINE="${ETHLINE} ${NETDEV}=daemon,FE:FD:67:45:${NETMACBYTE}:${!TMAC},unix,${RUNDIR}/network${NET}"
 	done
 
 	if [ -z "${ETHLINE}" ]; then
