@@ -20,7 +20,7 @@ $(LINKS):
 
 install: all
 	$(INSTALL) -d $(INSTPREFIX)
-	$(CPSYMLINK) $(FILES) $(INSTPREFIX)
+	$(CPSYMLINK) $(FILES) $(LINKS) $(INSTPREFIX)
 
 dist:
 	@rm -rf .svn
