@@ -4,11 +4,31 @@
 #
 
 source @PREFIX@/uml-functions.sh
-
 if [ -z "$1" ]; then
 	BUILDDIR="`pwd`"
 else
 	BUILDDIR="$1"
+fi
+
+source ${BUILDDIR}/etc/make.globals
+source ${BUILDDIR}/etc/make.conf
+
+if [ -z "${PORTDIR}" ]; then
+	die "No PORTDIR.  Are /etc/make.globals and /etc/make.conf broken?"
+fi
+if [ -z "${PORTAGE_TMPDIR}" ]; then
+	die "No PORTAGE_TMPDIR.  Are /etc/make.globals and /etc/make.conf broken?"
+fi
+if [ -z "${DISTDIR}" ]; then
+	die "No DISTDIR.  Are /etc/make.globals and /etc/make.conf broken?"
+fi
+
+SCHEDTOOL=$(which schedtool 2>/dev/null)
+echo $SCHEDTOOL
+if [ -n "${SCHEDTOOL}" ]; then
+	CMD="${SCHEDTOOL} -D -e chroot"
+else
+	CMD="chroot"
 fi
 
 # Stop if it was started
@@ -16,11 +36,15 @@ uml-build-stop
 
 # Mount /proc, /usr/portage, /home/portage
 sudo mount -o bind /proc ${BUILDDIR}/proc || die "Mount of /proc failed"
-sudo mount -o bind /usr/portage ${BUILDDIR}/usr/portage || die "Mount of /usr/portage failed"
-sudo mount -o bind /home/portage ${BUILDDIR}/home/portage || die "Mount of /home/portage failed"
+sudo mount -o bind ${PORTDIR} ${BUILDDIR}${PORTDIR} || die "Mount of ${PORTDIR} failed"
+sudo mount -o bind ${PORTAGE_TMPDIR} ${BUILDDIR}${PORTAGE_TMPDIR} || die "Mount of ${PORTAGE_TMPDIR} failed"
+sudo mount -o bind ${DISTDIR} ${BUILDDIR}${DISTDIR} || die "Mount of ${DISTDIR} failed"
 sudo mount -o bind ${BUILDDIR}/../kernel ${BUILDDIR}/usr/src || die "Mount of /usr/src failed"
+for dir in ${PORTDIR_OVERLAY}; do
+	sudo mount -o bind ${dir} ${BUILDDIR}${dir} || die "Mount of ${dir} failed"
+done
 sudo cp /etc/resolv.conf ${BUILDDIR}/etc || die "Couldn't cp /etc/resolv.conf"
 
 # Now, start screen and chroot
 cd ${BUILDDIR}
-screen -S uml-build -t uml-build sudo -H schedtool -D -e chroot ${BUILDDIR} /bin/bash -l
+screen -S uml-build -t uml-build sudo -H ${CMD} ${BUILDDIR} /bin/bash -l

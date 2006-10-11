@@ -11,5 +11,25 @@ else
 	BUILDDIR="$1"
 fi
 
-# unmount our shit
-sudo umount ${BUILDDIR}/proc ${BUILDDIR}/usr/portage ${BUILDDIR}/home/portage ${BUILDDIR}/usr/src || die "umounts failed"
+source ${BUILDDIR}/etc/make.globals
+source ${BUILDDIR}/etc/make.conf
+
+if [ -z "${PORTDIR}" ]; then
+	die "No PORTDIR.  Are /etc/make.globals and /etc/make.conf broken?"
+fi
+if [ -z "${PORTAGE_TMPDIR}" ]; then
+	die "No PORTAGE_TMPDIR.  Are /etc/make.globals and /etc/make.conf broken?"
+fi
+if [ -z "${DISTDIR}" ]; then
+	die "No DISTDIR.  Are /etc/make.globals and /etc/make.conf broken?"
+fi
+
+UMOUNT_DIRS="${BUILDDIR}/proc ${BUILDDIR}${PORTDIR} \
+	${BUILDDIR}${PORTAGE_TMPDIR} ${BUILDDIR}${DISTDIR} \
+	${BUILDDIR}/usr/src"
+
+for dir in ${PORTDIR_OVERLAY}; do
+	UMOUNT_DIRS="${UMOUNT_DIRS} ${BUILDDIR}${dir}"
+done
+# unmount stuff that we mounted
+sudo umount ${UMOUNT_DIRS} || die "umounts failed"
