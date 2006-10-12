@@ -13,6 +13,10 @@ fi
 
 source ${BUILDDIR}/etc/make.globals
 source ${BUILDDIR}/etc/make.conf
+if [ -f ${HOME}/.uml-build.rc ]; then
+	source ${HOME}/.uml-build.rc
+fi
+
 
 if [ -z "${PORTDIR}" ]; then
 	die "No PORTDIR.  Are /etc/make.globals and /etc/make.conf broken?"
@@ -31,5 +35,9 @@ UMOUNT_DIRS="${BUILDDIR}/proc ${BUILDDIR}${PORTDIR} \
 for dir in ${PORTDIR_OVERLAY}; do
 	UMOUNT_DIRS="${UMOUNT_DIRS} ${BUILDDIR}${dir}"
 done
+for dir in ${USER_MOUNT_DIRS}; do
+	UMOUNT_DIRS="${UMOUNT_DIRS} ${BUILDDIR}${dir}"
+done
+
 # unmount stuff that we mounted
 sudo umount ${UMOUNT_DIRS} || die "umounts failed"

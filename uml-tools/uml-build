@@ -12,6 +12,9 @@ fi
 
 source ${BUILDDIR}/etc/make.globals
 source ${BUILDDIR}/etc/make.conf
+if [ -f ${HOME}/.uml-build.rc ]; then
+	source ${HOME}/.uml-build.rc
+fi
 
 if [ -z "${PORTDIR}" ]; then
 	die "No PORTDIR.  Are /etc/make.globals and /etc/make.conf broken?"
@@ -43,8 +46,14 @@ sudo mount -o bind ${BUILDDIR}/../kernel ${BUILDDIR}/usr/src || die "Mount of /u
 for dir in ${PORTDIR_OVERLAY}; do
 	sudo mount -o bind ${dir} ${BUILDDIR}${dir} || die "Mount of ${dir} failed"
 done
+for dir in ${USER_MOUNT_DIRS}; do
+	sudo mount -o bind ${dir} ${BUILDDIR}${dir} || die "Mount of ${dir} failed"
+done
 sudo cp /etc/resolv.conf ${BUILDDIR}/etc || die "Couldn't cp /etc/resolv.conf"
 
 # Now, start screen and chroot
 cd ${BUILDDIR}
 screen -S uml-build -t uml-build sudo -H ${CMD} ${BUILDDIR} /bin/bash -l
+
+# Stop if again
+uml-build-stop
