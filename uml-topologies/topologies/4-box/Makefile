@@ -5,7 +5,7 @@
 
 INSTPREFIX=$(TOPPREFIX)/4-box
 INSTALL=install
-FILES=cluster.conf
+FILES=4-box.conf
 
 all: $(FILES)
 
