@@ -29,3 +29,4 @@ cd ${CURDIR}
 sudo mount -o loop ${IMG} ${MNTDIR} || die "Couldn't mount ${IMG}"
 sudo rsync -avS --delete --progress ${BUILDDIR}/ ${MNTDIR} || die "rsync failed"
 sudo umount ${MNTDIR} || die "Couldn't unmount ${MNTDIR}"
+sudo e2fsck -y ${IMG} || die "fsck of ${IMG} failed"
