@@ -27,3 +27,4 @@ dist:
 	@rm -rf .svn
 
 clean:
+	@rm $(LINKS)
