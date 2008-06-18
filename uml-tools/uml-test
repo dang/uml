@@ -3,6 +3,12 @@
 # Set up a simulated domain using UML
 #
 
+# Requerements:
+# screen
+# tunctl
+# iproute2
+# usermode-utilities
+
 # Set usage output
 USAGE="[-ht] <config-file>"
 LONGUSAGE="\t-h\tPrint this help message
